@@ -1,4 +1,4 @@
-# PBRP Recovery Tree for realme 7/Narzo 20 Pro/Narzo 30 4G
+# TWRP Recovery Tree for realme 7/Narzo 20 Pro/Narzo 30 4G
 
 It was announced and released in September 2020.
 
