@@ -1,0 +1,278 @@
+import /init.trustonic.rc
+import /tee.rc
+import /init.sensor_1_0.rc
+
+on init
+    symlink /dev/block/platform/bootdevice /dev/block/bootdevice
+    export PATH /sbin:/system/bin
+    export LD_LIBRARY_PATH /system/lib64:/vendor/lib64:/vendor/lib64/hw:/system/lib64/hw:/sbin
+    mkdir /mnt/vendor/persist/mcRegistry 0777 system system
+    mkdir /mnt/vendor/persist 0777 system system
+    mount ext4 /dev/block/by-name/persist /mnt/vendor/persist rw
+    setprop persist.sys.firstlaunch false
+    setprop ro.boot.build.security_patch 2099-12-31
+
+on late-fs
+    # Mount RW partitions which need run fsck
+    mount_all /first_stage_ramdisk/fstab.mt6785 --late
+
+on fs
+    install_keyring
+    setprop crypto.ready 1    
+    write /sys/class/oplus_chg/usb/otg_switch 1
+    write /sys/class/power_supply/usb/otg_switch 1
+    wait /dev/block/platform/bootdevice/
+    symlink /dev/block/platform/bootdevice/ /dev/block/bootdevice
+
+on early-init 
+    start adbd
+    start vold    
+    start ueventd
+    start health-hal-2-1
+    start init-device-sh
+    start vendor.vibrator-1-0
+    start boot-hal-1-1
+    
+on property:ro.crypto.state=encrypted && property:ro.crypto.type=file
+    start mobicore
+
+service init-device-sh /system/bin/init.device.sh
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0    
+    
+service charger /system/bin/charger
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+service ueventd /system/bin/ueventd
+    critical
+    user root
+    group root
+    shutdown critical
+    disabled
+    seclabel u:r:recovery:s0
+
+service console /system/bin/sh
+    console
+    user root
+    group root log readproc
+    disabled
+    seclabel u:r:recovery:s0 
+
+service fastbootd /system/bin/fastbootd
+    user root
+    group system
+    disabled
+    seclabel u:r:recovery:s0
+
+service vendor.vibrator-1-0 system/bin/android.hardware.vibrator@1.0-service
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0    
+
+service health-hal-2-1 /system/bin/android.hardware.health@2.1-service
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0  
+
+service recovery /system/bin/recovery
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+service hwservicemanager /system/bin/hwservicemanager
+    user root
+    group root readproc
+    disabled
+    onrestart setprop hwservicemanager.ready false
+    seclabel u:r:recovery:s0
+
+service servicemanager /system/bin/servicemanager
+    user root
+    group root readproc
+    disabled
+    seclabel u:r:recovery:s0
+
+service keystore_auth /system/bin/keystore_auth
+    oneshot
+    user system
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+service keystore2 /system/bin/keystore2 /tmp/misc/keystore
+    user root
+    group root drmrpc readproc
+    disabled
+    seclabel u:r:recovery:s0
+
+#Add for OPPO FBE  
+
+service mobicore /vendor/bin/mcDriverDaemon --P1 /mnt/vendor/persist/mcRegistry \
+    -r /vendor/app/mcRegistry/020f0000000000000000000000000000.drbin \
+    -r /vendor/app/mcRegistry/05120000000000000000000000000000.drbin \
+    -r /vendor/app/mcRegistry/020b0000000000000000000000000000.drbin \
+    -r /odm/vendor/app/mcRegistry/05070000000000000000000000000000.drbin \
+    -r /odm/vendor/app/mcRegistry/030b0000000000000000000000000000.drbin \
+    -r /odm/vendor/app/mcRegistry/030c0000000000000000000000000000.drbin \
+    -r /vendor/app/mcRegistry/07060000000000000000000000007169.drbin \
+    -r /vendor/app/mcRegistry/40188311faf343488db888ad39496f9a.drbin \
+    -r /vendor/app/mcRegistry/06090000000000000000000000000000.drbin \
+    -r /vendor/app/mcRegistry/0f5eed3c3b5a47afacca69a84bf0efad.drbin \
+    -r /vendor/app/mcRegistry/07407000000000000000000000000000.drbin \
+    -r /vendor/app/mcRegistry/9073f03a9618383bb1856eb3f990babd.drbin \
+    -r /vendor/app/mcRegistry/6b3f5fa0f8cf55a7be2582587d62d63a.drbin \
+    -r /vendor/app/mcRegistry/5020170115e016302017012521300000.drbin \
+    -r /odm/vendor/app/mcRegistry/09070000000000000000000000000000.drbin
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0    
+
+service  hal_cryptoeng_oppo /system/bin/hw/vendor.oplus.hardware.cryptoeng@1.0-service
+    user root
+    group root drmrpc
+    disabled
+    seclabel u:r:recovery:s0  
+
+service keymaster-4-0 /system/bin/android.hardware.keymaster@4.0-service.trustonic
+    user root
+    group root drmrpc
+    disabled
+    seclabel u:r:recovery:s0
+
+service gatekeeper-1-0 /system/bin/android.hardware.gatekeeper@1.0-service
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+service keymaster_attestation-1-1 /system/bin/hw/vendor.mediatek.hardware.keymaster_attestation@1.1-service
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0    
+
+service tee-1-1 /system/bin/hw/vendor.trustonic.tee@1.1-service
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+service soter_hal /system/bin/hw/vendor.trustonic.soter@1.0-service
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+    
+service gatekeeperd /system/bin/gatekeeperd /data/misc/gatekeeper
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+on property:sys.listeners.registered=true && property:vendor.sys.listeners.registered=true
+    start mobicore
+    start keymaster-4-0
+    start gatekeeper-1-0
+    start keymaster_attestation-1-1
+    start tee-1-1
+    start soter_hal
+
+on property:hwservicemanager.ready=true
+    start mobicore
+    start hal_cryptoeng_oppo
+    start keymaster-4-0
+    start gatekeeper-1-0
+    start keymaster_attestation-1-1
+    start tee-1-1
+    start soter_hal
+
+on property:ro.crypto.state=unsupported
+    stop mobicore
+    stop hal_cryptoeng_oppo
+    stop keymaster-4-0
+    stop gatekeeper-1-0
+    stop servicemanager
+    stop hwservicemanager
+
+on property:ro.crypto.state=unencrypted
+    stop mobicore
+    stop hal_cryptoeng_oppo
+    stop keymaster-4-0
+    stop gatekeeper-1-0
+    stop servicemanager
+    stop hwservicemanager
+
+on property:twrp.all.users.decrypted=true
+    stop mobicore
+    stop hal_cryptoeng_oppo
+    stop keymaster-4-0
+    stop gatekeeper-1-0
+    stop keymaster_attestation-1-1
+    stop tee-1-1
+    stop soter_hal
+   
+on property:enable.fbe.service=0
+    stop mobicore
+    stop hal_cryptoeng_oppo
+    stop keymaster-4-0
+    stop gatekeeperd
+    stop gatekeeper-1-0
+    stop servicemanager
+    stop hwservicemanager
+    
+on property:sys.usb.config=fastboot
+    start servicemanager
+    start hwservicemanager
+    restart fastbootd
+
+#### For Test
+
+on init
+    setprop sys.usb.configfs 1
+    setprop sys.usb.ffs.aio_compat 1
+    # pstore/ramoops previous console log
+    mount pstore pstore /sys/fs/pstore nodev noexec nosuid
+    chown system log /sys/fs/pstore/console-ramoops
+    chmod 0440 /sys/fs/pstore/console-ramoops
+    chown system log /sys/fs/pstore/console-ramoops-0
+    chmod 0440 /sys/fs/pstore/console-ramoops-0
+    chown system log /sys/fs/pstore/pmsg-ramoops-0
+    chmod 0440 /sys/fs/pstore/pmsg-ramoops-0
+
+on fs && property:ro.debuggable=0
+    write /sys/devices/virtual/oplus_chg/usb/otg_switch 1
+    # distinguish USB shoulde connect or not, i.e. CDP vs SDP
+    write /sys/class/udc/musb-hdrc/device/cmode 2
+    # set charging free due to it wait for USB activation
+    start adbd
+
+on post-fs
+    # Support A/B feature for EMMC and UFS boot region
+    wait /dev/block/mmcblk0boot0 2
+    symlink /dev/block/sda /dev/block/mmcblk0boot0
+    symlink /dev/block/sdb /dev/block/mmcblk0boot1
+    symlink /dev/block/mmcblk0boot0 /dev/block/platform/bootdevice/by-name/preloader_a
+    symlink /dev/block/mmcblk0boot1 /dev/block/platform/bootdevice/by-name/preloader_b
+
+
+    # Support A/B feature for combo emmc and ufs OTA update
+    symlink /dev/block/platform/bootdevice/by-name/preloader_a /dev/block/platform/bootdevice/by-name/preloader_emmc_a
+    symlink /dev/block/platform/bootdevice/by-name/preloader_b /dev/block/platform/bootdevice/by-name/preloader_emmc_b
+    symlink /dev/block/platform/bootdevice/by-name/preloader_a /dev/block/platform/bootdevice/by-name/preloader_ufs_a
+    symlink /dev/block/platform/bootdevice/by-name/preloader_b /dev/block/platform/bootdevice/by-name/preloader_ufs_b
+
+    symlink /dev/block/mapper/pl_a /dev/block/by-name/preloader_raw_a
+    symlink /dev/block/mapper/pl_b /dev/block/by-name/preloader_raw_b
+    symlink /dev/block/mapper/pl_a /dev/block/platform/bootdevice/by-name/preloader_raw_a
+    symlink /dev/block/mapper/pl_b /dev/block/platform/bootdevice/by-name/preloader_raw_b
+
+    exec u:r:update_engine:s0 root root -- /system/bin/mtk_plpath_utils
